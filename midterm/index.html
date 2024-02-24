@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+    <title>Document</title>
+</head>
+<body>
+    <div class="container">
+        <div class="row">
+            <div class="col-12 p-5">
+                <div class="mb-3">
+                    <label for="name" class="form-label">Name</label>
+                    <input type="text" class="form-control" id="name" placeholder="Name" autofocus>
+                </div>
+                <div class="mb-3">
+                    <label for="birthdate" class="form-label">Birthdate</label>
+                    <input type="text" class="form-control" id="birthdate" placeholder="Birthdate">
+                </div>
+                <div class="mb-3">
+                    <label for="deathdate" class="form-label">Death date</label>
+                    <input type="text" class="form-control" id="deathdate" placeholder="Deathdate">
+                </div>
+                <div class="mb-3">
+                    <label for="spouse" class="form-label">Spouse</label>
+                    <input type="text" class="form-control" id="spouse" placeholder="spouse">
+                </div>
+                <div class="mb-3">
+                    <label for="description" class="form-label">Description</label>
+                    <input type="text" class="form-control" id="description" placeholder="Description">
+                </div>
+                <button type="button" class="btn btn-primary" id="save">Save Record</button>
+            </div>
+            <div class="col-12 p-5">
+                <h3>Heroes List</h3>
+                <table class="table">
+                    <thead>
+                      <tr>
+                        <th scope="col">Name</th>
+                        <th scope="col">Birthdate</th>
+                        <th scope="col">Deathdate</th>
+                        <th scope="col">Spouse</th>
+                        <th scope="col">Description</th>
+                        <th scope="col">Option</th>
+                      </tr>
+                    </thead>
+                    <tbody id="tableBody">
+                    </tbody>
+                  </table>
+                  <div id="modaledit"></div>
+                  <div id="modaldelete"></div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://code.jquery.com/jquery-3.7.1.js" integrity="sha256-eKhayi8LEQwp4NKxN+CfCh+3qOVUtJn3QNZ0TciWLP4=" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous"></script>
+
+    <script>
+        var tableBody = document.getElementById("tableBody");
+        var modaledit = document.getElementById("modaledit");
+        var modaldelete = document.getElementById("modaldelete");
+        var tableContent = "";
+        var modalcontent = "";
+        var modaldeletecontent = "";
+        var save = document.getElementById("save");
+
+        save.addEventListener('click', function() {
+
+            var name = document.getElementById("name").value;
+            var birthdate = document.getElementById("birthdate").value;
+            var deathdate = document.getElementById("deathdate").value;
+            var spouse = document.getElementById("spouse").value;
+            var description = document.getElementById("description").value;
+
+            if(name == "") {
+                alert("Name Field is Required!");
+                document.getElementById("name").focus();
+                return;
+            }
+            else if(birthdate == ""){
+                alert("Birthdate is Required!");
+                document.getElementById("birthdate").focus();
+                return;
+            }
+            else if(deathdate == ""){
+                alert("Death date is Required!");
+                document.getElementById("deathdate").focus();
+                return;
+            }
+            else if(spouse == ""){
+                alert("Required!");
+                document.getElementById("spouse").focus();
+                return;
+            }
+            else if(description == ""){
+                alert("Description is Required!");
+                document.getElementById("description").focus();
+                return;
+            }
+                
+            var saveData = {name:name, birthdate:birthdate, deathdate:deathdate, spouse:spouse, description:description};
+
+            $.ajax({
+                type: "POST",
+                url: 'http://localhost/midterm/server-side/create.php',
+                data: {data: JSON.stringify(saveData)},
+                success: function (response) {
+                    var obj = JSON.parse(response);
+                    if(obj.data == "Success") {
+                        document.getElementById("name").value = "";
+                        document.getElementById("birthdate").value = "";
+                        document.getElementById("deathdate").value = "";
+                        document.getElementById("spouse").value = "";
+                        document.getElementById("description").value = ""
+                        location.reload();
+                    }
+                    else
+                        alert("Saving of Record Failed!");
+                }
+            });
+        }, false);
+
+        $.ajax({
+            type: "GET",
+            url: 'http://localhost/midterm/server-side/read.php',
+            success: function (response) {
+                var heroes = JSON.parse(response);
+                for(let i in heroes) {
+                    tableContent += `
+                        <tr>
+                        <td>${heroes[i].name}</td>
+                        <td>${heroes[i].birthdate}</td>
+                        <td>${heroes[i].deathdate}</td>
+                        <td>${heroes[i].spouse}</td>
+                        <td>${heroes[i].description}</td>
+                        <td>
+                            <a href="#" onclick="editHeroes(${heroes[i].id})" data-bs-toggle="modal" data-bs-target="#editModal${heroes[i].id}">Edit</a>
+                            <a href="#" onclick="deleteHeroes(${heroes[i].id})" data-bs-toggle="modal" data-bs-target="#deleteModal${heroes[i].id}">Delete</a>
+                        </td>
+                      </tr>
+                    `;
+                    modalcontent += `
+                        <div class="modal fade" id="editModal${heroes[i].id}" tabindex="-1" aria-labelledby="editModalLabel" aria-hidden="true">
+                            <div class="modal-dialog">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="editModalLabel">Edit Heroes Record</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <input type="hidden" id="editHeroesId${heroes[i].id}" value="${heroes[i].id}">
+                                        <div class="mb-3">
+                                            <label for="name${heroes[i].id}" class="form-label">Name</label>
+                                            <input type="text" class="form-control" id="name${heroes[i].id}" placeholder="Name" value="${heroes[i].name}" autofocus>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="birthdate${heroes[i].id}" class="form-label">Birthdate</label>
+                                            <input type="text" class="form-control" id="birthdate${heroes[i].id}" value="${heroes[i].birthdate}" placeholder="Birthdate">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="deathdate${heroes[i].id}" class="form-label">Death date</label>
+                                            <input type="text" class="form-control" id="deathdate${heroes[i].id}" value="${heroes[i].deathdate}" placeholder="Deathdate">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="spouse${heroes[i].id}" class="form-label">Spouse</label>
+                                            <input type="text" class="form-control" id="spouse${heroes[i].id}" value="${heroes[i].spouse}" placeholder="spouse">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="description${heroes[i].id}" class="form-label">Description</label>
+                                            <input type="text" class="form-control" id="description${heroes[i].id}" value="${heroes[i].description}" placeholder="Description">
+                                        </div>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                        <button type="button" class="btn btn-primary" onclick="saveEditedHeroes(${heroes[i].id})">Save changes</button>
+                                    </div>
+                                    
+                                </div>
+                            </div>
+                        </div> `;
+                        modaldeletecontent += `
+                        <div class="modal fade" id="deleteModal${heroes[i].id}" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+                            <div class="modal-dialog">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="deleteModalLabel">Delete Heroes Record</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <p>Are you sure you want to delete the hero ${heroes[i].name}?</p>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                        <button type="button" class="btn btn-danger" onclick="confirmDelete(${heroes[i].id})">Delete</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>`;
+
+
+                }
+                modaledit.innerHTML = modalcontent;
+                modaldelete.innerHTML = modaldeletecontent;
+                tableBody.innerHTML = tableContent;
+            }
+        });
+
+        function saveEditedHeroes(id) {
+            var editedHeroesId = document.getElementById("editHeroesId"+id).value;
+            var editedName = document.getElementById("name"+id).value;
+            var editedBirthdate = document.getElementById("birthdate"+id).value;
+            var editedDeathdate = document.getElementById("deathdate"+id).value;
+            var editedSpouse = document.getElementById("spouse"+id).value;
+            var editedDescription = document.getElementById("description"+id).value;
+
+
+            var editedData = {
+                id: editedHeroesId,
+                name: editedName,
+                birthdate: editedBirthdate,
+                deathdate: editedDeathdate,
+                spouse: editedSpouse,
+                description: editedDescription
+            };
+
+            $.ajax({
+                type: "POST",
+                url: 'http://localhost/midterm/server-side/update.php',
+                data: { data: JSON.stringify(editedData) },
+                success: function (response) {
+                    var obj = JSON.parse(response);
+                    if (obj.data == "Success") {
+                        alert("Record Updated!");
+                        location.reload();
+                    } else {
+                        alert("Updating Record Failed!");
+                    }
+                }
+            });
+
+            var editModal = new bootstrap.Modal(document.getElementById('editModal' + editedHeroesId));
+            editModal.hide();
+        }
+
+        function deleteHeroes(id) {
+            var deleteModal = new bootstrap.Modal(document.getElementById('deleteModal' + id));
+            deleteModal.show();
+        }
+
+        function confirmDelete(id) {
+            $.ajax({
+                type: "POST",
+                url: 'http://localhost/midterm/server-side/delete.php',
+                data: { id: id },
+                success: function (response) {
+                    var obj = JSON.parse(response);
+                    if (obj.data == "Success") {
+                        alert("Record Deleted!");
+                        location.reload();
+                    } else {
+                        alert("Deleting Record Failed!");
+                    }
+                }
+            });
+            var deleteModal = new bootstrap.Modal(document.getElementById('deleteModal' + id));
+            deleteModal.hide();
+        }
+
+
+    </script>
+</body>
+
+</html>
